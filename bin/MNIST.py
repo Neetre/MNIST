@@ -27,7 +27,7 @@ class Net(nn.Module):
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.50)
         self.dropout3 = nn.Dropout(0.75)
-        self.ln1 = nn.Linear(61952, 1024)   # 22x22x128 , 9216/128 = 61952/x
+        self.ln1 = nn.Linear(15488, 1024)   # 22x22x128 , 9216/128 = 61952/x
         self.ln2 = nn.Linear(1024, 128)
         self.ln3 = nn.Linear(128, 10)
 
