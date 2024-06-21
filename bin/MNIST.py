@@ -8,6 +8,7 @@ import argparse
 from icecream import ic
 import numpy as np
 from torch.optim.lr_scheduler import StepLR
+import os
 
 device = 'cpu'
 if torch.cuda.is_available():
@@ -22,15 +23,15 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.conv3 = nn.Conv2d(32, 128, 3, 1)
+        self.conv3 = nn.Conv2d(64, 128, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.50)
         self.dropout3 = nn.Dropout(0.75)
-        self.ln1 = nn.Linear(61952, 128)   # 22x22x128 , 9216/128 = 61952/x
+        self.ln1 = nn.Linear(61952, 1024)   # 22x22x128 , 9216/128 = 61952/x
         self.ln2 = nn.Linear(1024, 128)
         self.ln3 = nn.Linear(128, 10)
 
-    def forward(self, x, y=None):
+    def forward(self, x):
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
@@ -47,15 +48,12 @@ class Net(nn.Module):
         x = F.relu(x)  
         x = self.dropout3(x)
         x = self.ln3(x)
-        if y != None:
-            loss = F.cross_entropy(x, y)
-        logits = F.softmax(x, dim=1)
-        return logits, loss
+        return x
         
 
 def get_dataset(B):
-    dataset_train = datasets.MNIST("./data", train=True, transform=transforms.ToTensor(), download=True)
-    dataset_test = datasets.MNIST("./data", train=False, transform=transforms.ToTensor())
+    dataset_train = datasets.MNIST("../data", train=True, transform=transforms.ToTensor(), download=True)
+    dataset_test = datasets.MNIST("../data", train=False, transform=transforms.ToTensor())
     
     train_loader = torch.utils.data.DataLoader(dataset_train, B, shuffle=True)
     test_loader = torch.utils.data.DataLoader(dataset_test, B, shuffle=True)
@@ -68,7 +66,8 @@ def train(model, device, train_loader, optimizer, epoch):
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        logits, loss = model(x, y)  # feedforward
+        logits = model(x)  # feedforward
+        loss = F.cross_entropy(logits, y)
         loss.backward()  # backpropagation
         optimizer.step()
         if batch_idx % 10 == 0:
@@ -79,12 +78,14 @@ def train(model, device, train_loader, optimizer, epoch):
         
 def val(model, device, test_loader):
     model.eval()
+    test_loss = 0
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.to(device), y.to(device)
-            logits, loss = model(x, y)
+            logits = model(x)
+            test_loss = F.cross_entropy(logits, y)
             pred = logits.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            print("Loss: {:.4f} | Pred: {pred}").format(loss.item(), pred)
+            print(f"Loss: {test_loss:.4f} | Pred: {pred}")
 
 
 def infer(model, device, image):
@@ -109,6 +110,7 @@ def preprocess(image_path: str):
     image = torch.from_numpy(image)
     return image
 
+
 def postprocess(results):
     results = torch.Tensor.detach(results)
     results = torch.Tensor.numpy(results)
@@ -117,10 +119,12 @@ def postprocess(results):
 
 def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument("-b", "--num-batch", type=int, help="Number of batches")
+    parser.add_argument("-b", "--num-batch", type=int, default=32, help="Number of batches")
     parser.add_argument("-p", "--image-path", type=str, help="Path to test image")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of Epochs")
     parser.add_argument("-lr", "--learning-rate", type=float, default=2e-3,help="Leaning rate of the Net")
     parser.add_argument("-g", "--gamma", type=float, default=0.7, help="Leaning rate step")
+    parser.add_argument("--save-model", action="store_true", default=False, help="Save after training")
     parser.add_argument("-v", '--verbose', action="store_true", default=False, help='Prints everything')
 
     args = parser.parse_args()
@@ -130,15 +134,29 @@ def main():
     else:
         ic.disable()
         
+    train_loader, test_loader = get_dataset(args.num_batch)
+        
     model = Net()
     model = model.to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    optimizer = optim.Adadelta(model.parameters(), lr=args.learning_rate)
     
-    scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
-    
-    
+    scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    for epoch in range(1, args.epochs + 1):
+        train(model, device, train_loader, optimizer, epoch)
+        val(model, device, test_loader)
     
     if args.image_path != None:
         image = preprocess(args.image_path)
         result = infer(model, device, image)
-        print(f"Result for the image: {result}")
+        result = postprocess(result)
+        print(f"Result for the image '{args.image_path}': {result}")
+
+    if args.save_model:
+        try:
+            torch.save(model.state_dict(), "./model/mnist.pt")  # pt, safer than pth
+        except Exception as e:
+            print(f"Error {e}")
+
+
+if __name__ == '__main__':
+    main()
