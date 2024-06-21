@@ -79,13 +79,16 @@ def train(model, device, train_loader, optimizer, epoch):
 def val(model, device, test_loader):
     model.eval()
     test_loss = 0
+    correct = 0
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.to(device), y.to(device)
             logits = model(x)
-            test_loss = F.cross_entropy(logits, y)
+            test_loss += F.cross_entropy(logits, y)
             pred = logits.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            print(f"Loss: {test_loss:.4f} | Pred: {pred}")
+            correct += pred.eq(y.view_as(pred)).sum().item()
+    test_loss /= len(test_loader.dataset)
+    print(f"Val Loss: {test_loss:.4f}  |  Accuracy: {correct}/{len(test_loader.dataset)}")
 
 
 def infer(model, device, image):
@@ -121,7 +124,7 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument("-b", "--num-batch", type=int, default=32, help="Number of batches")
     parser.add_argument("-p", "--image-path", type=str, help="Path to test image")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of Epochs")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of Epochs")
     parser.add_argument("-lr", "--learning-rate", type=float, default=2e-3,help="Leaning rate of the Net")
     parser.add_argument("-g", "--gamma", type=float, default=0.7, help="Leaning rate step")
     parser.add_argument("--save-model", action="store_true", default=False, help="Save after training")
