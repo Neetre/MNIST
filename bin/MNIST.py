@@ -4,6 +4,14 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 import cv2 as cv
+import argparse
+from icecream import ic
+
+device = 'cpu'
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
 
 
 class Net(nn.Module):
@@ -42,4 +50,42 @@ class Net(nn.Module):
         logits = F.softmax(x, dim=1)
         return logits, loss
         
+
+def get_dataset(B):
+    dataset_train = datasets.MNIST("./data", train=True, transform=transforms.ToTensor(), download=True)
+    dataset_test = datasets.MNIST("./data", train=False, transform=transforms.ToTensor())
+    
+    train_loader = torch.utils.data.DataLoader(dataset_train, B, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset_test, B, shuffle=True)
+    
+    return train_loader, test_loader
+
+
+def train(model, device, train_loader, optimizer, num_epoch):
+    model.train()
+    for batch_idx, (x, y) in enumerate(train_loader):
+        x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
         
+        
+def val(model, device, test_loader, optimizer, num_epoch):
+    model.eval()
+    for batch_idx, (x, y) in enumerate(test_loader):
+        x, y = x.to(device), y.to(device)
+        
+        
+def main():
+    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+    parser.add_argument("-b", "--num_batch", type=int, help="Number of batches")
+    parser.add_argument("-v", '--verbose', action="store_true", default=False, help='Prints everything')
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        ic.enable()
+    else:
+        ic.disable()
+        
+    model = Net()
+    model = model.to(device)
+    optimizer = optim.Adadelta(model.parameters(), lr=1e-3)
