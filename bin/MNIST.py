@@ -6,6 +6,7 @@ from torchvision import datasets, transforms
 import cv2 as cv
 import argparse
 from icecream import ic
+import numpy as np
 
 device = 'cpu'
 if torch.cuda.is_available():
@@ -68,15 +69,48 @@ def train(model, device, train_loader, optimizer, num_epoch):
         optimizer.zero_grad()
         
         
-def val(model, device, test_loader, optimizer, num_epoch):
+def val(model, device, test_loader):
     model.eval()
-    for batch_idx, (x, y) in enumerate(test_loader):
-        x, y = x.to(device), y.to(device)
-        
-        
+    with torch.no_grad():
+        for x, y in test_loader:
+            x, y = x.to(device), y.to(device)
+            logits, loss = model(x, y)
+            pred = logits.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            print("Loss: {:.4f} | Pred: {pred}").format(loss.item(), pred)
+
+
+def infer(model, device, image):
+    model.to(device)
+    results = model(image)
+    return results
+
+
+def preprocess(image_path: str):
+    image = cv.imread(image_path, 0)
+    image = cv.bitwise_not(image)
+    image = cv.copyMakeBorder(image, 2, 2, 2, 2, cv.BORDER_CONSTANT, value=0)
+    image = cv.resize(image, (28, 28))
+    # image.imshow()
+    image = image.astype(np.float32)
+    image = image / 255
+    ic(image.shape)
+    image = np.expand_dims(image, axis=0)
+    ic(image.shape)
+    image = np.expand_dims(image, axis=0)
+    ic(image.shape)   # batch, channel, height, width
+    image = torch.from_numpy(image)
+    return image
+
+def postprocess(results):
+    results = torch.Tensor.detach(results)
+    results = torch.Tensor.numpy(results)
+    return np.argmax(results)
+
+
 def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument("-b", "--num_batch", type=int, help="Number of batches")
+    parser.add_argument("-p", "--image_path", type=str, help="Path to test image")
     parser.add_argument("-v", '--verbose', action="store_true", default=False, help='Prints everything')
 
     args = parser.parse_args()
@@ -89,3 +123,10 @@ def main():
     model = Net()
     model = model.to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=1e-3)
+    
+    
+    
+    if args.image_path != None:
+        image = preprocess(args.image_path)
+        result = infer(model, device, image)
+        print(f"Result for the image: {result}")
