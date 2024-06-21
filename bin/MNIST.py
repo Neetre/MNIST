@@ -7,6 +7,7 @@ import cv2 as cv
 import argparse
 from icecream import ic
 import numpy as np
+from torch.optim.lr_scheduler import StepLR
 
 device = 'cpu'
 if torch.cuda.is_available():
@@ -62,12 +63,19 @@ def get_dataset(B):
     return train_loader, test_loader
 
 
-def train(model, device, train_loader, optimizer, num_epoch):
+def train(model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)
         optimizer.zero_grad()
-        
+        logits, loss = model(x, y)  # feedforward
+        loss.backward()  # backpropagation
+        optimizer.step()
+        if batch_idx % 10 == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, batch_idx * len(x), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
+
         
 def val(model, device, test_loader):
     model.eval()
@@ -109,8 +117,10 @@ def postprocess(results):
 
 def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument("-b", "--num_batch", type=int, help="Number of batches")
-    parser.add_argument("-p", "--image_path", type=str, help="Path to test image")
+    parser.add_argument("-b", "--num-batch", type=int, help="Number of batches")
+    parser.add_argument("-p", "--image-path", type=str, help="Path to test image")
+    parser.add_argument("-lr", "--learning-rate", type=float, default=2e-3,help="Leaning rate of the Net")
+    parser.add_argument("-g", "--gamma", type=float, default=0.7, help="Leaning rate step")
     parser.add_argument("-v", '--verbose', action="store_true", default=False, help='Prints everything')
 
     args = parser.parse_args()
@@ -122,7 +132,9 @@ def main():
         
     model = Net()
     model = model.to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=1e-3)
+    optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    
+    scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
     
     
     
