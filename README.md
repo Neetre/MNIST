@@ -2,8 +2,8 @@
 
 ## Description
 
-This repository contains a project for Hack Club.
-The program defines the structure of a Neural Network, in this case a CNN model, look [here](https://www.3blue1brown.com/lessons/neural-networks) for reference. The NN is built to recognize handwritten digits, it is trained using the MNIST dataset.
+This repository contains a project developed for Hack Club. It implements a Convolutional Neural Network (CNN) to recognize handwritten digits from the [MNIST dataset](https://en.wikipedia.org/wiki/MNIST_database). For an introduction to neural networks, see this [guide](https://www.3blue1brown.com/lessons/neural-networks).
+
 
 ## Requirements
 
@@ -11,11 +11,10 @@ The program defines the structure of a Neural Network, in this case a CNN model,
 
 **Setting Up the Environment**
 
-1. Activate your virtual environment (if you're using one).
-2. Run the appropriate setup script for your operating system:
+Run the appropriate setup script for your operating system:
 
-   * Windows: `./setup.bat`
-   * Linux/macOS: `./setup.sh`
+* Windows: `./setup.bat`
+* Linux/macOS: `./setup.sh`
 
 These scripts likely install required dependencies, and build a virtual environment for you if you don't have one.
 
@@ -25,10 +24,22 @@ These scripts likely install required dependencies, and build a virtual environm
 
 2. Choose your method:
 
-   * **GUI:** `python gradio.py [--help]` (use `python3` on Linux/macOS)
-   * **Model:** `python MNIST.py [--help]` (use `python3` on Linux/macOS)
+   * **GUI:** `python gradio.py [--help]` (use `python3` on Linux/macOS) <br>
+   This will launch the GUI for testing the neural network.
+   * **Model:** `python MNIST.py [--help]` (use `python3` on Linux/macOS) <br>
+   This will run the model via command line interface.
 
    The `--help` flag displays available command-line arguments.
+
+## Usage
+
+### GUI
+
+The GUI allows for an interactive experience to test the neural network. Follow the on-screen instructions to draw digits and see the model's predictions in real-time.
+
+### CLI
+
+The command-line interface allows for training and testing the model through specified arguments. Use the --help flag to explore available options.
 
 ## Author
 
