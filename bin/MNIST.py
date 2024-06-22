@@ -23,39 +23,40 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.conv3 = nn.Conv2d(64, 128, 3, 1)
-        self.conv4 = nn.Conv2d(128, 512, 3, 1)
-        self.conv5 = nn.Conv2d(512, 1024, 3, 1)
+        # self.conv3 = nn.Conv2d(64, 128, 3, 1)
+        # self.conv4 = nn.Conv2d(128, 512, 3, 1)
+        # self.conv5 = nn.Conv2d(512, 1024, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.50)
-        self.dropout3 = nn.Dropout(0.75)
-        self.ln1 = nn.Linear(7*7*1024, 1024)   
-        self.ln2 = nn.Linear(1024, 128)
-        self.ln3 = nn.Linear(128, 10)
+        # self.dropout3 = nn.Dropout(0.75)
+        self.fc1 = nn.Linear(9216, 128)  # 7*7*1024, 1024
+        self.fc2 = nn.Linear(128, 10)
+        # self.ln3 = nn.Linear(128, 10)
 
     def forward(self, x):
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
         x = F.relu(x)
-        x = self.conv3(x)
-        x = F.relu(x)
+        # x = self.conv3(x)
+        # x = F.relu(x)
         x = F.max_pool2d(x, 2)
-        x = self.conv4(x)
-        x = F.relu(x)
-        x = self.conv5(x)
-        x = F.relu(x)
+        # x = self.conv4(x)
+        # x = F.relu(x)
+        # x = self.conv5(x)
+        # x = F.relu(x)
         x = self.dropout1(x)
         x = torch.flatten(x, 1)
-        x = self.ln1(x)
+        x = self.fc1(x)
         x = F.relu(x)
         x = self.dropout2(x)
-        x = self.ln2(x)
-        x = F.relu(x)
-        x = self.dropout3(x)
-        x = self.ln3(x)
+        x = self.fc2(x)
+        # x = F.relu(x)
+        # x = self.dropout3(x)
+        # x = self.ln3(x)
+        x = F.log_softmax(x, dim=1)
         return x
-        
+
 
 def get_dataset(B):
     dataset_train = datasets.MNIST("../data", train=True, transform=transforms.ToTensor(), download=True)
@@ -97,6 +98,28 @@ def val(model, device, test_loader):
     print(f"Val Loss: {test_loss:.4f}  |  Accuracy: {correct}/{len(test_loader.dataset)}")
 
 
+def set_ic_gradio(on: bool):
+    if on:
+        ic.enable()
+    else:
+        ic.off
+
+
+def load_model(model: Net, compile: bool):
+    try:
+            model.load_state_dict(torch.load("./model/mnist_cnn.pt", map_location=device))
+    except FileNotFoundError:
+        print("Couldn't find the pre-trained model.")
+        print("Try training one, or check the path.")
+    except Exception as e:
+        print(f"Error: {e}")
+    model = model.to(device)
+    if compile:
+        model = torch.compile(model)
+    model.eval()
+    return model
+
+
 def infer(model, device, image):
     model.to(device)
     results = model(image)
@@ -118,6 +141,10 @@ def preprocess(image_path: str):
     ic(image.shape)   # batch, channel, height, width
     image = torch.from_numpy(image)
     return image
+
+
+def get_device():
+    return device
 
 
 def postprocess(results):
@@ -149,18 +176,7 @@ def main():
 
     model = Net()
     if args.load_model:
-        try:
-            model.load_state_dict(torch.load("mnist_cnn.pt", map_location=device))
-        except FileNotFoundError:
-            print("Couldn't find the pre-trained model.")
-            print("Try training one, or check the path.")
-        except Exception as e:
-            print(f"Error: {e}")
-
-        model = model.to(device)
-        if args.compile:
-            model = torch.compile(model)
-        model.eval()
+        model = load_model(model, args.compile1)
         
     else:
         model = model.to(device)
@@ -182,7 +198,7 @@ def main():
             print(f"Error preprocessin the image: {e}")
         result = infer(model, device, image)
         result = postprocess(result)
-        print(f"Result for the image '{args.image_path}': {result}")
+        print(f"Result for the image '{args.image_path}': {str(result)}")
 
     if args.save_model:
         try:

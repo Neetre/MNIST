@@ -24,8 +24,10 @@ These scripts likely install required dependencies, and build a virtual environm
 
 2. Choose your method:
 
-   * **GUI:** `python gradio.py [--help]` (use `python3` on Linux/macOS) <br>
+   * **GUI:** `python MNIST_gui.py [--help]` (use `python3` on Linux/macOS) <br>
    This will launch the GUI for testing the neural network.
+   To access it you have to copy the url given by the program when it executes. Example: 'http://127.0.0.1:7860'.
+
    * **Model:** `python MNIST.py [--help]` (use `python3` on Linux/macOS) <br>
    This will run the model via command line interface.
 
