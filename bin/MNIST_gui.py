@@ -1,12 +1,10 @@
 import gradio as gr
 import MNIST
-import torch
 
 
 def richiesta(image: str, compile: bool):
     MNIST.set_ic_gradio(False)
     device = MNIST.get_device()
-    print(compile)
     if image != None:
         try:
             image = MNIST.preprocess(image).to(device)
@@ -22,7 +20,8 @@ def richiesta(image: str, compile: bool):
 
 
 with gr.Blocks() as demo:
-    gr.Markdown("GUI visualization of the NN")
+    gr.Markdown("# GUI visualization of the NN")
+    gr.Markdown("### The Image has to be black on white")
     image = gr.Image(type="filepath")
     compile = gr.Checkbox(label="Compile the model")
     result = gr.Textbox(label="Prediction of the NN")
@@ -34,4 +33,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(inbrowser=True)

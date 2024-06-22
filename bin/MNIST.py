@@ -102,7 +102,7 @@ def set_ic_gradio(on: bool):
     if on:
         ic.enable()
     else:
-        ic.off
+        ic.disable()
 
 
 def load_model(model: Net, compile: bool):
