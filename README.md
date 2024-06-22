@@ -40,7 +40,7 @@ These scripts likely install required dependencies, and build a virtual environm
 
 ### GUI
 
-The GUI allows for an interactive experience to test the neural network. Follow the on-screen instructions to draw digits and see the model's predictions in real-time.
+The GUI allows for an interactive experience to test the neural network. Follow the on-screen instructions and see the model's predictions in real-time.
 
 ### CLI
 

@@ -21,6 +21,7 @@ def richiesta(image: str, compile: bool):
 
 with gr.Blocks() as demo:
     gr.Markdown("# GUI visualization of the NN")
+    gr.Markdown("### Drop the image you want to scan in the area below.")
     gr.Markdown("### The Image has to be black on white")
     image = gr.Image(type="filepath")
     compile = gr.Checkbox(label="Compile the model")
