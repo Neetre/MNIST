@@ -176,7 +176,10 @@ def main():
             scheduler.step()
 
     if args.image_path != None:
-        image = preprocess(args.image_path).to(device)
+        try:
+            image = preprocess(args.image_path).to(device)
+        except Exception as e:
+            print(f"Error preprocessin the image: {e}")
         result = infer(model, device, image)
         result = postprocess(result)
         print(f"Result for the image '{args.image_path}': {result}")
