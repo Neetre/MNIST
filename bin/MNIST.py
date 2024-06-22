@@ -24,10 +24,12 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.conv3 = nn.Conv2d(64, 128, 3, 1)
+        self.conv4 = nn.Conv2d(128, 512, 3, 1)
+        self.conv5 = nn.Conv2d(512, 1024, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.50)
         self.dropout3 = nn.Dropout(0.75)
-        self.ln1 = nn.Linear(15488, 1024)   # 22x22x128 , 9216/128 = 61952/x
+        self.ln1 = nn.Linear(7*7*1024, 1024)   
         self.ln2 = nn.Linear(1024, 128)
         self.ln3 = nn.Linear(128, 10)
 
@@ -39,13 +41,17 @@ class Net(nn.Module):
         x = self.conv3(x)
         x = F.relu(x)
         x = F.max_pool2d(x, 2)
+        x = self.conv4(x)
+        x = F.relu(x)
+        x = self.conv5(x)
+        x = F.relu(x)
         x = self.dropout1(x)
         x = torch.flatten(x, 1)
         x = self.ln1(x)
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.ln2(x)
-        x = F.relu(x)  
+        x = F.relu(x)
         x = self.dropout3(x)
         x = self.ln3(x)
         return x
@@ -124,9 +130,11 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument("-b", "--num-batch", type=int, default=32, help="Number of batches")
     parser.add_argument("-p", "--image-path", type=str, help="Path to test image")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of Epochs")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of Epochs")
     parser.add_argument("-lr", "--learning-rate", type=float, default=2e-3,help="Leaning rate of the Net")
-    parser.add_argument("-g", "--gamma", type=float, default=0.7, help="Leaning rate step")
+    parser.add_argument("--gamma", type=float, default=0.7, help="Leaning rate step")
+    parser.add_argument("--compile", action="store_true", default=False, help="Compile the model")
+    parser.add_argument("--load-model", action="store_true", default=False, help="Load a pre-trained model")
     parser.add_argument("--save-model", action="store_true", default=False, help="Save after training")
     parser.add_argument("-v", '--verbose', action="store_true", default=False, help='Prints everything')
 
@@ -138,25 +146,44 @@ def main():
         ic.disable()
         
     train_loader, test_loader = get_dataset(args.num_batch)
-        
+
     model = Net()
-    model = model.to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=args.learning_rate)
-    
-    scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    for epoch in range(1, args.epochs + 1):
-        train(model, device, train_loader, optimizer, epoch)
-        val(model, device, test_loader)
-    
+    if args.load_model:
+        try:
+            model.load_state_dict(torch.load("mnist_cnn.pt", map_location=device))
+        except FileNotFoundError:
+            print("Couldn't find the pre-trained model.")
+            print("Try training one, or check the path.")
+        except Exception as e:
+            print(f"Error: {e}")
+
+        model = model.to(device)
+        if args.compile:
+            model = torch.compile(model)
+        model.eval()
+        
+    else:
+        model = model.to(device)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.learning_rate)
+        
+        if args.compile:
+            model = torch.compile(model)
+        
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        for epoch in range(1, args.epochs + 1):
+            train(model, device, train_loader, optimizer, epoch)
+            val(model, device, test_loader)
+            scheduler.step()
+
     if args.image_path != None:
-        image = preprocess(args.image_path)
+        image = preprocess(args.image_path).to(device)
         result = infer(model, device, image)
         result = postprocess(result)
         print(f"Result for the image '{args.image_path}': {result}")
 
     if args.save_model:
         try:
-            torch.save(model.state_dict(), "./model/mnist.pt")  # pt, safer than pth
+            torch.save(model.state_dict(), "./model/mnist_cnn.pt")  # pt, safer than pth
         except Exception as e:
             print(f"Error {e}")
 
