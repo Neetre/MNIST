@@ -14,7 +14,7 @@ This repository contains a project developed for Hack Club. It implements a Conv
 * Windows: `./start_Windows.bat`
 * Linux/macOS: `./start_Linux.sh`
 
-These scripts likely install required dependencies, and build a virtual environment for you if you don't have one. They will also start the GUI automatically
+These scripts will install required dependencies, and build a virtual environment for you if you don't have one. They will also start the GUI automatically
 
 ## Running the Program (CLI or GUI)
 
