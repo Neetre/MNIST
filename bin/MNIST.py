@@ -1,14 +1,23 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torchvision import datasets, transforms
-import cv2 as cv
+'''
+Definition of the NN and setting up
+some functions for the GUI.
+
+Neetre 2024
+'''
+
 import argparse
 from icecream import ic
+
+import cv2 as cv
 import numpy as np
+
+import torch
+from torch import nn
+from torch import optim
+import torch.nn.functional as F
+from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-import os
+
 
 device = 'cpu'
 if torch.cuda.is_available():
@@ -18,8 +27,17 @@ elif torch.backends.mps.is_available():
 
 
 class Net(nn.Module):
-    
+    """
+    The Neural Network for the MNIST dataset.
+
+    Args:
+        nn (class nn): The class nn from torch
+    """
+
     def __init__(self):
+        """
+        Setting up the layers of the NN.
+        """
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
@@ -33,7 +51,16 @@ class Net(nn.Module):
         self.fc2 = nn.Linear(128, 10)
         # self.ln3 = nn.Linear(128, 10)
 
-    def forward(self, x):
+    def forward(self, x) -> torch.tensor:
+        """
+        Forward pass of the NN.
+
+        Args:
+            x (torch.tensor): The input tensor
+
+        Returns:
+            torch.tensor: The output tensor
+        """
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
@@ -59,16 +86,37 @@ class Net(nn.Module):
 
 
 def get_dataset(B):
-    dataset_train = datasets.MNIST("../data", train=True, transform=transforms.ToTensor(), download=True)
-    dataset_test = datasets.MNIST("../data", train=False, transform=transforms.ToTensor())
-    
+    """
+    Get the MNIST dataset, and divede it in batches.
+
+    Args:
+        B (int): The number of batches
+
+    Returns:
+        _type_: The train and test loader
+    """
+    dataset_train = datasets.MNIST("../data", train=True,
+                                   transform=transforms.ToTensor(), download=True)
+    dataset_test = datasets.MNIST("../data", train=False,
+                                  transform=transforms.ToTensor())
+
     train_loader = torch.utils.data.DataLoader(dataset_train, B, shuffle=True)
     test_loader = torch.utils.data.DataLoader(dataset_test, B, shuffle=True)
-    
+
     return train_loader, test_loader
 
 
 def train(model, device, train_loader, optimizer, epoch):
+    """
+    Train the NN.
+
+    Args:
+        model (Net): The NN to train
+        device (str): The device to use (cpu, cuda, mps)
+        train_loader (): the loader of the train dataset
+        optimizer (optim): The optimizer to use (Adadelta, could also be AdamW)
+        epoch (int): The number of epochs
+    """
     model.train()
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)
@@ -82,8 +130,16 @@ def train(model, device, train_loader, optimizer, epoch):
                 epoch, batch_idx * len(x), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
 
-        
+
 def val(model, device, test_loader):
+    """
+    Validate the NN.
+
+    Args:
+        model (Net): The NN to validate
+        device (str): The device to use (cpu, cuda, mps)
+        test_loader (): The loader of the test dataset
+    """
     model.eval()
     test_loss = 0
     correct = 0
@@ -99,34 +155,70 @@ def val(model, device, test_loader):
 
 
 def set_ic_gradio(on: bool):
+    """
+    Set the icecream module for the GUI.
+
+    Args:
+        on (bool): Enable or disable the module
+    """
     if on:
         ic.enable()
     else:
         ic.disable()
 
 
-def load_model(model: Net, compile: bool):
+def load_model(model: Net, compile_: bool):
+    """
+    Load a pre-trained model.
+
+    Args:
+        model (Net): The model to load
+        compile (bool): Compile the model
+
+    Returns:
+        Net: The loaded model
+    """
     try:
-            model.load_state_dict(torch.load("./model/mnist_cnn.pt", map_location=device))
+        model.load_state_dict(torch.load("./model/mnist_cnn.pt", map_location=device))
     except FileNotFoundError:
         print("Couldn't find the pre-trained model.")
         print("Try training one, or check the path.")
     except Exception as e:
         print(f"Error: {e}")
     model = model.to(device)
-    if compile:
+    if compile_:
         model = torch.compile(model)
     model.eval()
     return model
 
 
 def infer(model, device, image):
+    """
+    Infer the image.
+
+    Args:
+        model (Net): The model to use
+        device (str): The device to use (cpu, cuda, mps)
+        image (torch.tensor): The image to infer
+
+    Returns:
+        torch.tensor: The result of the inference
+    """
     model.to(device)
     results = model(image)
     return results
 
 
-def preprocess(image_path: str):
+def preprocess(image_path: str) -> torch.tensor:
+    """
+    Preprocess the image.
+
+    Args:
+        image_path (str): The path to the image
+
+    Returns:
+        Tensor: The preprocessed image
+    """
     image = cv.imread(image_path, 0)
     image = cv.bitwise_not(image)
     image = cv.copyMakeBorder(image, 2, 2, 2, 2, cv.BORDER_CONSTANT, value=0)
@@ -144,26 +236,54 @@ def preprocess(image_path: str):
 
 
 def get_device():
+    """
+    Get the device to use.
+
+    Returns:
+        str: The device to use
+    """
     return device
 
 
 def postprocess(results):
+    """
+    Postprocess the results of the infer.
+
+    Args:
+        results (torch.tensor): The results of the infer
+
+    Returns:
+        int: The result of the infer (the number predicted)
+    """
     results = torch.Tensor.detach(results)
     results = torch.Tensor.numpy(results)
     return np.argmax(results)
 
 
 def main():
+    """
+    Main function of the script. It parses the arguments and runs the NN.
+    """
+    
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument("-b", "--num-batch", type=int, default=32, help="Number of batches")
-    parser.add_argument("-p", "--image-path", type=str, help="Path to test image")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of Epochs")
-    parser.add_argument("-lr", "--learning-rate", type=float, default=2e-3,help="Leaning rate of the Net")
-    parser.add_argument("--gamma", type=float, default=0.7, help="Leaning rate step")
-    parser.add_argument("--compile", action="store_true", default=False, help="Compile the model")
-    parser.add_argument("--load-model", action="store_true", default=False, help="Load a pre-trained model")
-    parser.add_argument("--save-model", action="store_true", default=False, help="Save after training")
-    parser.add_argument("-v", '--verbose', action="store_true", default=False, help='Prints everything')
+    parser.add_argument("-b", "--num-batch", type=int, default=32,
+                        help="Number of batches")
+    parser.add_argument("-p", "--image-path", type=str,
+                        help="Path to test image")
+    parser.add_argument("--epochs", type=int, default=10,
+                        help="Number of Epochs")
+    parser.add_argument("-lr", "--learning-rate", type=float, default=2e-3,
+                        help="Leaning rate of the Net")
+    parser.add_argument("--gamma", type=float, default=0.7,
+                        help="Leaning rate step")
+    parser.add_argument("--compile", action="store_true", default=False,
+                        help="Compile the model")
+    parser.add_argument("--load-model", action="store_true", default=False,
+                        help="Load a pre-trained model")
+    parser.add_argument("--save-model", action="store_true", default=False,
+                        help="Save after training")
+    parser.add_argument("-v", '--verbose', action="store_true", default=False,
+                        help='Prints everything')
 
     args = parser.parse_args()
 
@@ -171,27 +291,27 @@ def main():
         ic.enable()
     else:
         ic.disable()
-        
+
     train_loader, test_loader = get_dataset(args.num_batch)
 
     model = Net()
     if args.load_model:
         model = load_model(model, args.compile1)
-        
+
     else:
         model = model.to(device)
         optimizer = optim.Adadelta(model.parameters(), lr=args.learning_rate)
-        
+
         if args.compile:
             model = torch.compile(model)
-        
+
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         for epoch in range(1, args.epochs + 1):
             train(model, device, train_loader, optimizer, epoch)
             val(model, device, test_loader)
             scheduler.step()
 
-    if args.image_path != None:
+    if args.image_path is not None:
         try:
             image = preprocess(args.image_path).to(device)
         except Exception as e:
