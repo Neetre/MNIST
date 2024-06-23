@@ -29,6 +29,8 @@ CLI:
 
    ![Image](data/Readme_img/GUI.PNG)
 
+   You can find examples of images in the data/Examples folder.
+
    * **Model:** `python MNIST.py [--help]` (use `python3` on Linux/macOS) <br>
    This will run the model via command line interface.
 
