@@ -1,6 +1,6 @@
 @ECHO OFF
 
-CALL ./setup_Windows.bat
+CALL ./setup/setup_Windows.bat
 
 REM Change directory to 'bin' and run the application
 CD /d bin

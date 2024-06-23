@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./start_Linux.sh
+source ./setup/setup_Linux.sh
 
 # Change the current directory to the one containing the script
 cd /bin/
