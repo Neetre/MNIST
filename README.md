@@ -13,12 +13,14 @@ This repository contains a project developed for Hack Club. It implements a Conv
 
 Run the appropriate setup script for your operating system:
 
-* Windows: `./setup.bat`
-* Linux/macOS: `./setup.sh`
+* Windows: `./setup_Windows.bat`
+* Linux/macOS: `./setup_Linux.sh`
 
 These scripts likely install required dependencies, and build a virtual environment for you if you don't have one.
 
-## Running the Program
+## Running the Program (CLI or GUI)
+
+CLI:
 
 1. Navigate to the `bin` directory: `cd bin`
 
@@ -35,6 +37,10 @@ These scripts likely install required dependencies, and build a virtual environm
    The `--help` flag displays available command-line arguments.
 
    ![Image](data/Readme_img/CLI.PNG)
+
+GUI:
+
+Double click on the *start files* for your OS, and it should open the GUI app automatically.
 
 ## Usage
 

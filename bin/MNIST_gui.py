@@ -1,3 +1,9 @@
+'''
+The code below is the GUI for the MNIST project.
+
+Neetre 2024
+'''
+
 import gradio as gr
 import mnist as MNIST
 
@@ -34,7 +40,7 @@ with gr.Blocks() as demo:
     gr.Markdown("### Drop the image you want to scan in the area below.")
     gr.Markdown("### The Image has to be black on white")
     image = gr.Image(type="filepath")
-    compile_ = gr.Checkbox(label="Compile the model")
+    compile_ = gr.Checkbox(label="Compile the model (doesn't work on every device)")
     result = gr.Textbox(label="Prediction of the NN")
 
     btn = gr.Button("Run")
