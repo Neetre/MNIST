@@ -29,8 +29,3 @@ else
     echo "requirements.txt not found. Skipping installation."
 fi
 
-# Change the current directory to the one containing the script
-cd /bin/
-
-# Run the application
-python3 mnist_gui.py
