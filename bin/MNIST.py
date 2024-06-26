@@ -26,7 +26,7 @@ elif torch.backends.mps.is_available():
     device = "mps"
 
 
-class Net(nn.Module):
+class Net_load(nn.Module):
     """
     The Neural Network for the MNIST dataset.
 
@@ -81,6 +81,65 @@ class Net(nn.Module):
         # x = F.relu(x)
         # x = self.dropout3(x)
         # x = self.ln3(x)
+        x = F.log_softmax(x, dim=1)
+        return x
+    
+
+class Net(nn.Module):
+    """
+    The Neural Network for the MNIST dataset.
+
+    Args:
+        nn (class nn): The class nn from torch
+    """
+
+    def __init__(self):
+        """
+        Setting up the layers of the NN.
+        """
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.conv3 = nn.Conv2d(64, 128, 3, 1)
+        self.conv4 = nn.Conv2d(128, 512, 3, 1)
+        self.conv5 = nn.Conv2d(512, 1024, 3, 1)
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.50)
+        self.dropout3 = nn.Dropout(0.75)
+        self.fc1 = nn.Linear(9216, 128)  # 7*7*1024, 1024
+        self.fc2 = nn.Linear(128, 10)
+        self.ln3 = nn.Linear(128, 10)
+
+    def forward(self, x) -> torch.tensor:
+        """
+        Forward pass of the NN.
+
+        Args:
+            x (torch.tensor): The input tensor
+
+        Returns:
+            torch.tensor: The output tensor
+        """
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = self.conv3(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.conv4(x)
+        x = F.relu(x)
+        x = self.conv5(x)
+        x = F.relu(x)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        x = F.relu(x)
+        x = self.dropout3(x)
+        x = self.ln3(x)
         x = F.log_softmax(x, dim=1)
         return x
 
@@ -294,11 +353,12 @@ def main():
 
     train_loader, test_loader = get_dataset(args.num_batch)
 
-    model = Net()
     if args.load_model:
+        model = Net_load()  # because the model loaded has been trained with less layer than the one I've built
         model = load_model(model, args.compile1)
 
     else:
+        model = Net()
         model = model.to(device)
         optimizer = optim.Adadelta(model.parameters(), lr=args.learning_rate)
 
